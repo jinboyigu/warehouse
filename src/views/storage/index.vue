@@ -2,7 +2,12 @@
   <div>
     <el-col :offset="2" :span="20">
       <h4 style="text-align: left">标题</h4>
-      <el-table :data="tableData" :stripe="true" size="medium">
+      <el-table
+        :data="tableData"
+        :stripe="true"
+        size="medium"
+        v-loading="tableLoading"
+      >
         <el-table-column
           v-for="column in tableProps"
           :key="column.value"
@@ -18,11 +23,12 @@
           </template>
         </el-table-column>
         <el-table-column align="right">
-          <template slot="header">
+          <!-- eslint-disable-next-line vue/no-unused-vars -->
+          <template slot="header" slot-scope="scope">
             <el-input
               v-model="keyword"
-              size="mini"
               placeholder="输入关键字搜索"
+              ref="search"
             />
           </template>
           <div style="text-align: center" slot-scope="target">
@@ -54,6 +60,7 @@
 </template>
 
 <script>
+import $ from 'jquery';
 const inputModelSymbol = Symbol('updatedInputModelKey');
 export default {
   data() {
@@ -66,7 +73,7 @@ export default {
           header3: '1233',
         },
         {
-          header: '123',
+          header: '124',
           header1: '1231',
           header2: '1232',
           header3: '1233',
@@ -78,6 +85,8 @@ export default {
         { label: '表头2', value: 'header2' },
         { label: '表头3', value: 'header3' },
       ],
+      tableSearchKeys: ['header'],
+      tableLoading: false,
       keyword: '',
     };
   },
@@ -96,6 +105,19 @@ export default {
         });
       },
     },
+  },
+  mounted() {
+    this.$nextTick(() => {
+      this._inittableData = [].concat(this.tableData);
+      $(this.$refs.search.$el)
+        .find('input')
+        .on('keypress', event => {
+          const keyCode = event.which;
+          if (keyCode === 13) {
+            this.handleSearch();
+          }
+        });
+    });
   },
   methods: {
     toggleEdit(target) {
@@ -126,6 +148,26 @@ export default {
     },
     handleDelete(target) {
       this.tableData.splice(target.$index, 1);
+    },
+    handleSearch() {
+      this.toggleLoading(
+        new Promise(resolve => {
+          setTimeout(() => {
+            this.tableData = this._inittableData.filter(o => {
+              return this.tableSearchKeys.some(key =>
+                o[key].match(this.keyword)
+              );
+            });
+            resolve();
+          }, 300);
+        })
+      );
+    },
+    toggleLoading(_Promise) {
+      this.tableLoading = true;
+      return _Promise.finally(() => {
+        this.tableLoading = false;
+      });
     },
   },
 };
