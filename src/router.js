@@ -22,5 +22,11 @@ export default new Router({
       component: () =>
         import(/* webpackChunkName: "about" */ './views/About.vue'),
     },
+    {
+      path: '/storage',
+      name: 'storage',
+      component: () =>
+        import(/* webpackChunkName: "storage" */ './views/storage'),
+    },
   ],
 });
