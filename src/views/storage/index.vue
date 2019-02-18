@@ -17,7 +17,7 @@
           <template slot-scope="{ row }">
             <el-input
               v-model="row[getInputModelKey(column.value)]"
-              v-if="row.editing"
+              v-if="row.isEditing"
             />
             <div v-else>{{ row[column.value] }}</div>
           </template>
@@ -35,7 +35,7 @@
             <el-button
               type="primary"
               :icon="
-                tableData[target.$index].editing
+                tableData[target.$index].isEditing
                   ? 'el-icon-check'
                   : 'el-icon-edit'
               "
@@ -61,24 +61,12 @@
 
 <script>
 import $ from 'jquery';
+import storageApi from './api';
 const inputModelSymbol = Symbol('updatedInputModelKey');
 export default {
   data() {
     return {
-      tableData: [
-        {
-          header: '123',
-          header1: '1231',
-          header2: '1232',
-          header3: '1233',
-        },
-        {
-          header: '124',
-          header1: '1231',
-          header2: '1232',
-          header3: '1233',
-        },
-      ],
+      tableData: [],
       tableProps: [
         { label: '表头', value: 'header' },
         { label: '表头1', value: 'header1' },
@@ -93,18 +81,21 @@ export default {
   watch: {
     tableData: {
       immediate: true,
-      handler(_old, _new) {
+      handler(_new, _old) {
         (_new ? _new : _old).forEach(o => {
           if (!o.hasOwnProperty(inputModelSymbol)) {
             Object.keys(o).forEach(key => {
               this.$set(o, this.getInputModelKey(key), '');
             });
-            this.$set(o, 'editing', o.editing || false);
+            this.$set(o, 'isEditing', o.isEditing || false);
             o[inputModelSymbol] = true;
           }
         });
       },
     },
+  },
+  created() {
+    this.fetchData();
   },
   mounted() {
     this.$nextTick(() => {
@@ -120,34 +111,50 @@ export default {
     });
   },
   methods: {
+    fetchData() {
+      storageApi.list().then(result => {
+        this.tableData = result.list;
+      });
+    },
     toggleEdit(target) {
       const data = this.tableData[target.$index];
-      const editing = data.editing;
-      if (editing) {
+      const isEditing = data.isEditing;
+      if (isEditing) {
         // TODO check data
       }
       this.tableProps.forEach(o => {
         const _key = o.value;
-        if (editing) {
+        if (isEditing) {
           data[_key] = data[this.getInputModelKey(_key)];
         } else {
           data[this.getInputModelKey(_key)] = data[_key];
         }
       });
-      data.editing = !editing;
+      if (isEditing) {
+        const isUpdate = data.hasOwnProperty('id');
+        (isUpdate ? storageApi.update(data) : storageApi.create(data)).then(
+          result => {
+            !isUpdate && (data.id = result.id);
+            this.$message.success(isUpdate ? '更新成功' : '创建成功');
+          }
+        );
+      }
+      data.isEditing = !isEditing;
     },
     getInputModelKey(key) {
       return `_${key}InputModel`;
     },
     handleAdd(target) {
-      let newData = { editing: true };
+      let newData = { isEditing: true };
       this.tableProps.forEach(o => {
         newData[o.value] = '';
       });
       this.tableData.splice(target.$index + 1, 0, newData);
     },
     handleDelete(target) {
-      this.tableData.splice(target.$index, 1);
+      storageApi.delete(target.row.id).then(() => {
+        this.tableData.splice(target.$index, 1);
+      });
     },
     handleSearch() {
       this.toggleLoading(
