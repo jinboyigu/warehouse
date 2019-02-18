@@ -22,16 +22,23 @@
             <div v-else>{{ row[column.value] }}</div>
           </template>
         </el-table-column>
-        <el-table-column align="right">
+        <el-table-column>
           <!-- eslint-disable-next-line vue/no-unused-vars -->
           <template slot="header" slot-scope="scope">
+            <el-button
+              v-if="tableData.length === 0"
+              icon="el-icon-plus"
+              circle
+              @click="handleAdd({$index: 0})"
+            ></el-button>
             <el-input
+              v-else
               v-model="keyword"
               placeholder="输入关键字搜索"
               ref="search"
             />
           </template>
-          <div style="text-align: center" slot-scope="target">
+          <div slot-scope="target">
             <el-button
               type="primary"
               :icon="
