@@ -28,6 +28,7 @@ module.exports = class Storage extends MiddlewareBase {
       this.getDefault(),
       _.pick(requestData, this.getDefault(true))
     );
+    data.list = data.list || [];
     const id = data.list.length + 1;
     item.id = id;
     data.list.push(item);
